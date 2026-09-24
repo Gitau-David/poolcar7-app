@@ -1,8 +1,3 @@
--- Pool Car Request & Approve System — Supabase/Postgres schema
--- Run this once in Supabase: Project → SQL Editor → New query → paste → Run.
-
--- Needed for digest(), used below to hash PINs directly in SQL so you never
--- have to run a separate Python/Node command to add a new admin.
 create extension if not exists pgcrypto;
 
 create table if not exists users (
