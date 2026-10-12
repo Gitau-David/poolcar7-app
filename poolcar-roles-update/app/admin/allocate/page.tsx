@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type SVGProps } from "react";
 import AppShell from "@/components/AppShell";
 import StatusBadge from "@/components/StatusBadge";
 import AdminConfirmDialog from "@/components/AdminConfirmDialog";
@@ -8,7 +8,59 @@ import { api } from "@/lib/api";
 import { useSession } from "@/lib/session-context";
 import { can } from "@/lib/permissions";
 import type { Requisition, Vehicle, Driver } from "@/lib/types";
-import { CheckCircle2, ChevronRight, XCircle, RotateCcw, ArrowLeftRight } from "lucide-react";
+
+type IconProps = SVGProps<SVGSVGElement> & { size?: number };
+
+function IconBase(props: IconProps) {
+  const { size = 16, ...rest } = props;
+  return <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...rest} />;
+}
+
+function CheckCircleIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 12.5l2.5 2.5 5-6" />
+    </IconBase>
+  );
+}
+
+function ChevronRightIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M9 6l6 6-6 6" />
+    </IconBase>
+  );
+}
+
+function XCircleIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9 9l6 6M15 9l-6 6" />
+    </IconBase>
+  );
+}
+
+function RotateCcwIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M3 12a9 9 0 1 0 2.64-6.36" />
+      <path d="M3 4v5h5" />
+    </IconBase>
+  );
+}
+
+function ArrowLeftRightIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M7 7h10l-3-3" />
+      <path d="M17 17H7l3 3" />
+      <path d="M7 7v10" />
+      <path d="M17 17V7" />
+    </IconBase>
+  );
+}
 
 type Selection = { requisition: Requisition; kind: "pending" | "denied" | "reassign" };
 type Resolved = { kind: "approved" | "denied" | "reapproved" | "reassigned"; requisition: Requisition };
@@ -149,9 +201,9 @@ export default function AllocatePage() {
           }`}
         >
           {justResolved.kind === "denied" ? (
-            <XCircle size={18} className="text-red mt-0.5 shrink-0" />
+            <XCircleIcon size={18} className="text-red mt-0.5 shrink-0" />
           ) : (
-            <CheckCircle2 size={18} className="text-teal mt-0.5 shrink-0" />
+            <CheckCircleIcon size={18} className="text-teal mt-0.5 shrink-0" />
           )}
           <div className="text-sm text-ink">
             {justResolved.kind === "approved" && (
@@ -204,7 +256,7 @@ export default function AllocatePage() {
                     {r.start_date} → {r.end_date} · {r.origin} → {r.destination}
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-muted shrink-0" />
+                <ChevronRightIcon size={16} className="text-muted shrink-0" />
               </button>
             ))}
             {requisitions.length === 0 && <p className="text-sm text-muted">No pending requisitions — all caught up.</p>}
@@ -243,7 +295,7 @@ export default function AllocatePage() {
                         {flagged && <span className="text-amber ml-2">vehicle out of service</span>}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-teal mt-1.5">
-                        <ArrowLeftRight size={12} />
+                        <ArrowLeftRightIcon size={12} />
                         Reassign
                       </div>
                     </button>
@@ -276,7 +328,7 @@ export default function AllocatePage() {
                     </div>
                     {r.denial_reason && <div className="text-xs text-muted mt-1">{r.denial_reason}</div>}
                     <div className="flex items-center gap-1.5 text-xs text-teal mt-1.5">
-                      <RotateCcw size={12} />
+                      <RotateCcwIcon size={12} />
                       Reapprove instead
                     </div>
                   </button>
@@ -389,7 +441,7 @@ export default function AllocatePage() {
                   disabled={!vehicleId || !driverId}
                   className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-teal text-bg font-medium text-sm py-2.5 hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
-                  <RotateCcw size={14} />
+                  <RotateCcwIcon size={14} />
                   Reapprove — reverses the earlier denial
                 </button>
               )}
@@ -400,7 +452,7 @@ export default function AllocatePage() {
                   disabled={!vehicleId || !driverId}
                   className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-teal text-bg font-medium text-sm py-2.5 hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
-                  <ArrowLeftRight size={14} />
+                  <ArrowLeftRightIcon size={14} />
                   Reassign this trip
                 </button>
               )}
