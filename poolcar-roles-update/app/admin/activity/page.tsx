@@ -4,9 +4,76 @@ import { useEffect, useState, useCallback } from "react";
 import AppShell from "@/components/AppShell";
 import { api } from "@/lib/api";
 import type { ActivityLogEntry } from "@/lib/types";
-import { Printer, Trash2, ScrollText } from "lucide-react";
 import { SkeletonTable } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
+
+type IconProps = { size?: number; className?: string };
+
+function PrinterIcon({ size = 15, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M6 9V4h12v5" />
+      <path d="M6 18h12a2 2 0 0 0 2-2v-5H4v5a2 2 0 0 0 2 2Z" />
+      <path d="M6 14h12v6H6z" />
+      <path d="M9 18h6" />
+    </svg>
+  );
+}
+
+function TrashIcon({ size = 14, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  );
+}
+
+function ScrollTextIcon({ size = 16, className = "" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M8 3h8a2 2 0 0 1 2 2v13l-3-2-3 2-3-2-3 2V5a2 2 0 0 1 2-2Z" />
+      <path d="M9 8h6" />
+      <path d="M9 12h6" />
+    </svg>
+  );
+}
 
 const ACTION_LABEL: Record<string, string> = {
   login: "Logged in",
@@ -140,7 +207,7 @@ export default function ActivityLogPage() {
             onClick={() => window.print()}
             className="flex items-center gap-1.5 rounded-lg border border-border text-ink text-sm px-3 py-2 hover:bg-surface2 transition-colors"
           >
-            <Printer size={15} />
+            <PrinterIcon size={15} />
             Print
           </button>
         </div>
@@ -152,7 +219,7 @@ export default function ActivityLogPage() {
         <SkeletonTable rows={7} cols={7} />
       ) : entries.length === 0 ? (
         <EmptyState
-          icon={ScrollText}
+          icon={<ScrollTextIcon size={19} className="text-muted" />}
           title={showAllDates ? "No activity recorded yet" : "Nothing on this date"}
           description={showAllDates ? undefined : "Try toggling \"All dates\" or picking a different day."}
         />
@@ -190,7 +257,7 @@ export default function ActivityLogPage() {
                       className="text-muted hover:text-red transition-colors disabled:opacity-50"
                       aria-label="Delete entry"
                     >
-                      <Trash2 size={14} />
+                      <TrashIcon size={14} />
                     </button>
                   </td>
                 </tr>
