@@ -1289,7 +1289,7 @@ export async function getOpsReport(days = 30): Promise<OpsReport> {
       : null,
     trips_active_now: reqs.filter((r) => r.status === "Active").length,
     reassignments: reassignments ?? 0,
-    by_department: [...dept.values()].sort((a, b) => b.count - a.count).slice(0, 8),
+    by_department: Array.from(...dept.values()).sort((a, b) => b.count - a.count).slice(0, 8),
   };
 }
 
