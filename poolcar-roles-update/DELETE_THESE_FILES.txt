@@ -1,9 +1,0 @@
-Delete these from your project after copying the overlay in (they are replaced):
-
-  lib/require-admin.ts            -> replaced by lib/guard.ts + lib/permissions.ts
-  app/api/admins/route.ts         -> replaced by app/api/users/route.ts
-  app/api/admins/[id]/route.ts    -> replaced by app/api/users/[id]/route.ts
-  app/api/directory/route.ts      -> replaced by app/api/users/route.ts
-
-Then: run db/schema.sql in the Supabase SQL editor (safe to re-run; upgrades the old admin role),
-and everyone with an old session must sign in again.
