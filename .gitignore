@@ -1,0 +1,8 @@
+node_modules
+.next
+.env
+.env.local
+*.db
+db/*.db
+npm-debug.log*
+next-env.d.ts
