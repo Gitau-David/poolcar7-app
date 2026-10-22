@@ -1,12 +1,10 @@
-import type { LucideIcon } from "lucide-react";
-
 export default function EmptyState({
   icon: Icon,
   title,
   description,
   action,
 }: {
-  icon: LucideIcon;
+  icon: React.ElementType;
   title: string;
   description?: string;
   action?: React.ReactNode;
