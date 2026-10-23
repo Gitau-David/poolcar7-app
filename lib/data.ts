@@ -211,7 +211,44 @@ export async function listActivityLog(date?: string, limit = 500): Promise<Activ
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as ActivityLogEntry[];
 }
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => "\\" + c);
+}
 
+/** Staff-scoped activity: things this person did, plus anything done to their trips by others. */
+export async function listActivityForUser(
+  name: string,
+  requisitionIds: number[],
+  limit = 500
+): Promise<ActivityLogEntry[]> {
+  const select = "*, requisitions(sno, requester)";
+  const byActor = supabase
+    .from("activity_log")
+    .select(select)
+    .ilike("actor_name", escapeLike(name.trim()))
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const byTrip = requisitionIds.length
+    ? supabase
+        .from("activity_log")
+        .select(select)
+        .in("requisition_id", requisitionIds)
+        .order("created_at", { ascending: false })
+        .limit(limit)
+    : Promise.resolve({ data: [] as any[], error: null as any });
+
+  const [a, b] = await Promise.all([byActor, byTrip]);
+  if (a.error) throw new Error(a.error.message);
+  if (b.error) throw new Error(b.error.message);
+
+  const merged = new Map<number, ActivityLogEntry>();
+  for (const row of [...(a.data ?? []), ...(b.data ?? [])] as unknown as ActivityLogEntry[]) {
+    merged.set(row.id, row);
+  }
+  return [...merged.values()]
+    .sort((x, y) => y.created_at.localeCompare(x.created_at))
+    .slice(0, limit);
+}
 export async function deleteActivityLogEntry(id: number): Promise<void> {
   const { error } = await supabase.from("activity_log").delete().eq("id", id);
   if (error) throw new Error(error.message);
