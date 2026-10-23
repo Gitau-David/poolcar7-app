@@ -15,6 +15,7 @@ import type {
   Session,
   Vehicle,
   VehicleOverride,
+  TransactionEvent,
 } from "./types";
 
 // The session token lives in sessionStorage, not a cookie — sessionStorage
@@ -329,6 +330,10 @@ export const api = {
   listDriverNotices: (unreadOnly = false) =>
     fetch(`/api/notifications/drivers${unreadOnly ? "?unreadOnly=true" : ""}`, { headers: authHeaders() }).then(
       (r) => json<{ notifications: Notification[] }>(r)
+    ),
+    listTransactions: () =>
+    fetch("/api/transactions", { headers: authHeaders() }).then((r) =>
+      json<{ requisitions: Requisition[]; events: TransactionEvent[] }>(r)
     ),
 
   markNotificationRead: (id: number) =>
