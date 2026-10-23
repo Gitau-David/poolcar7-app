@@ -211,9 +211,6 @@ export async function listActivityLog(date?: string, limit = 500): Promise<Activ
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as ActivityLogEntry[];
 }
-function escapeLike(s: string): string {
-  return s.replace(/[\\%_]/g, (c) => "\\" + c);
-}
 
 /** Staff-scoped activity: things this person did, plus anything done to their trips by others. */
 export async function listActivityForUser(
