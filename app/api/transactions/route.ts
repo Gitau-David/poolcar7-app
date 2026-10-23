@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/auth";
-import { isAdminLike } from "@/lib/require-admin";
 import {
   listActivityForUser,
   listActivityLog,
@@ -17,7 +16,7 @@ export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  const admin = isAdminLike(session);
+  const admin = session.role !=="user";
   const me = session.name.trim().toLowerCase();
 
   const all = await listRequisitions();
