@@ -37,7 +37,7 @@ function totalDays(start: string, end: string): number {
 
 export default function TransactionsPage() {
   const session = useSession();
-  const isAdminLike = session?.role === "admin" || session?.role === "it_admin";
+  const isAdminLike = !!session && session.role !== "user";
   const [requisitions, setRequisitions] = useState<Requisition[]>([]);
   const [events, setEvents] = useState<TransactionEvent[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
