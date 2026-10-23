@@ -209,3 +209,17 @@ export interface OpsReport {
   reassignments: number;
   by_department: { department: string; count: number }[];
 }
+export interface TransactionEvent {
+  id: string;
+  kind: "activity" | "notice";
+  at: string;
+  actor: string | null;
+  mine: boolean;
+  action: string;
+  label: string;
+  detail: string | null;
+  tripLabel: string | null;
+  driverName: string | null;
+  driverPhone: string | null;
+  unread: boolean;
+}
