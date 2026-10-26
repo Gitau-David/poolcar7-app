@@ -9,9 +9,7 @@ import { SessionContext } from "@/lib/session-context";
 import NotificationBell from "./NotificationBell";
 import LiveClock from "./LiveClock";
 
-// The project does not currently include the lucide-react package, so these
-// lightweight inline SVG icons keep the nav working without introducing a new
-// dependency or changing any other files.
+// Lightweight inline SVG icons keep the nav working without extra dependencies.
 type IconProps = { size?: number; className?: string };
 type IconComponent = (props: IconProps) => JSX.Element;
 
@@ -53,10 +51,6 @@ const Users = makeIcon("U");
 
 // Who sees what is decided by lib/permissions.ts — the same table the API
 // routes enforce server-side, so a hidden button is never the only lock.
-//   Fleet Manager   → vehicles, maintenance & fuel, compliance, usage reports
-//   Operations Lead → allocation, reassignment, drivers, ops reports
-//   IT Admin        → everything above + users, settings, full audit log
-// Dashboard, Transaction History and Messages are shared by every role.
 type NavItem = {
   href: string;
   label: string;
@@ -70,6 +64,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   module_messages: true,
   module_maintenance: true,
 };
+
+// Every page renders its own <AppShell>, so React remounts it on each page
+// change. Remembering the session and settings at module level means the
+// sidebar paints instantly instead of flashing "Loading…". The server still
+// checks the role on every API call, and me() re-validates in the background.
 let cachedSession: Session | null = null;
 let cachedSettings: AppSettings | null = null;
 
@@ -132,40 +131,31 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
 const NAV: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  // Use browser navigation here so this shell doesn't depend on the
-  // Next.js navigation module being available to the TypeScript resolver.
   const router = useRouter();
-const pathname = usePathname() ?? "/";
-const [session, setSession] = useState<Session | null | "loading">(cachedSession ?? "loading");
-const [mobileOpen, setMobileOpen] = useState(false);
-const [settings, setSettings] = useState<AppSettings>(cachedSettings ?? DEFAULT_SETTINGS);
-const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
-
-  const [pathname, setPathname] = useState("/");
-  const [session, setSession] = useState<Session | null | "loading">("loading");
+  const pathname = usePathname() ?? "/";
+  const [session, setSession] = useState<Session | null | "loading">(cachedSession ?? "loading");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-
-  useEffect(() => {
-    setPathname(window.location.pathname);
-    const updatePathname = () => setPathname(window.location.pathname);
-    window.addEventListener("popstate", updatePathname);
-    return () => window.removeEventListener("popstate", updatePathname);
-  }, []);
+  const [settings, setSettings] = useState<AppSettings>(cachedSettings ?? DEFAULT_SETTINGS);
+  const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
 
   useEffect(() => {
     api
       .me()
       .then((r) => {
         if (!r.session) {
+          cachedSession = null;
+          cachedSettings = null;
           router.replace("/");
         } else {
+          cachedSession = r.session;
           setSession(r.session);
           // Module switches (set by an IT Admin) decide which pages exist in the menu.
           api
             .getSettings()
-            .then((res) => setSettings(res.settings))
+            .then((res) => {
+              cachedSettings = res.settings;
+              setSettings(res.settings);
+            })
             .catch(() => {})
             .finally(() => setSettingsLoaded(true));
         }
@@ -174,8 +164,7 @@ const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
   }, [router]);
 
   // Enforce role separation client-side too (the API routes enforce it
-  // server-side either way, so this is just for a clean redirect instead of
-  // a page full of 403s).
+  // server-side either way, so this is just for a clean redirect).
   useEffect(() => {
     if (!session || session === "loading" || !settingsLoaded) return;
     const allowedHere = NAV.some((item) => item.show(session.role, settings) && pathname.startsWith(item.href));
@@ -200,6 +189,8 @@ const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
   if (!session) return null; // redirecting
 
   async function handleLogout() {
+    cachedSession = null;
+    cachedSettings = null;
     await api.logout();
     router.replace("/");
   }
@@ -226,7 +217,7 @@ const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
         </button>
       </div>
 
-      <nav className="flex-1 px-3 py-5 overflow-y-auto">
+      <nav className="flex-1 min-h-0 px-3 py-5 overflow-y-auto">
         <div className="space-y-5">
           {NAV_GROUPS.map((group) => {
             const items = group.items.filter((item) => item.show(session.role, settings));
@@ -267,7 +258,7 @@ const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
         </div>
       </nav>
 
-      <div className="px-3 py-4 border-t border-border">
+      <div className="shrink-0 px-3 py-4 border-t border-border">
         <div className="px-3 pb-3">
           <div className="text-sm text-ink font-medium truncate">{session.name}</div>
           <div className="text-[11px] text-muted uppercase tracking-wider2">{ROLE_LABEL[session.role]}</div>
@@ -285,15 +276,16 @@ const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
 
   return (
     <SessionContext.Provider value={session}>
-      <div className="flex min-h-screen">
+      {/* One screen tall: sidebar and header stay put, only <main> scrolls. */}
+      <div className="flex h-screen overflow-hidden print:h-auto print:overflow-visible">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:flex w-64 shrink-0 border-r border-border bg-surface flex-col shadow-elevated z-20">
+        <aside className="hidden lg:flex w-64 shrink-0 h-full border-r border-border bg-surface flex-col shadow-elevated z-20 print:hidden">
           {sidebarContent}
         </aside>
 
         {/* Mobile drawer */}
         {mobileOpen && (
-          <div className="lg:hidden fixed inset-0 z-40">
+          <div className="lg:hidden fixed inset-0 z-40 print:hidden">
             <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
             <aside className="absolute inset-y-0 left-0 w-72 bg-surface border-r border-border flex flex-col shadow-elevated">
               {sidebarContent}
@@ -301,8 +293,8 @@ const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
           </div>
         )}
 
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="flex items-center justify-between gap-3 px-5 lg:px-8 py-4 border-b border-border bg-surface/60 backdrop-blur sticky top-0 z-10">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <header className="shrink-0 print:hidden flex items-center justify-between gap-3 px-5 lg:px-8 py-4 border-b border-border bg-surface/60 backdrop-blur z-10">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(true)}
@@ -316,7 +308,7 @@ const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
             <NotificationBell />
           </header>
 
-          <main className="flex-1 overflow-y-auto px-5 lg:px-8 py-7">{children}</main>
+          <main className="flex-1 min-h-0 overflow-y-auto print:overflow-visible px-5 lg:px-8 py-7">{children}</main>
         </div>
       </div>
     </SessionContext.Provider>
