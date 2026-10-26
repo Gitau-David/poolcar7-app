@@ -134,13 +134,13 @@ const NAV: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 export default function AppShell({ children }: { children: React.ReactNode }) {
   // Use browser navigation here so this shell doesn't depend on the
   // Next.js navigation module being available to the TypeScript resolver.
-  const router = useMemo(
-    () => ({
-      push: (href: string) => window.location.assign(href),
-      replace: (href: string) => window.location.replace(href),
-    }),
-    [],
-  );
+  const router = useRouter();
+const pathname = usePathname() ?? "/";
+const [session, setSession] = useState<Session | null | "loading">(cachedSession ?? "loading");
+const [mobileOpen, setMobileOpen] = useState(false);
+const [settings, setSettings] = useState<AppSettings>(cachedSettings ?? DEFAULT_SETTINGS);
+const [settingsLoaded, setSettingsLoaded] = useState(cachedSettings !== null);
+
   const [pathname, setPathname] = useState("/");
   const [session, setSession] = useState<Session | null | "loading">("loading");
   const [mobileOpen, setMobileOpen] = useState(false);
