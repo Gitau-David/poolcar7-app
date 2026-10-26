@@ -1,6 +1,7 @@
 "use client";
 
-import { JSX, useEffect, useMemo, useState } from "react";
+import { JSX, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { Session, AppSettings } from "@/lib/types";
 import { can, ROLE_LABEL, type Role } from "@/lib/permissions";
@@ -69,6 +70,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   module_messages: true,
   module_maintenance: true,
 };
+let cachedSession: Session | null = null;
+let cachedSettings: AppSettings | null = null;
 
 const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
