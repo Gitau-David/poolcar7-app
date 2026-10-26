@@ -5,30 +5,13 @@ import AppShell from "@/components/AppShell";
 import StatusBadge from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session-context";
+import { downloadCsv, phone, splitStamp } from "@/lib/csv";
 import type { Requisition, TransactionEvent, Vehicle, Driver } from "@/lib/types";
 import { Download, History, Phone } from "lucide-react";
 import { SkeletonTable } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 
 type Tab = "all" | "trips" | "notices";
-
-function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
-}
-
-function downloadCsv(filename: string, rows: string[][]) {
-  const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 function totalDays(start: string, end: string): number {
   const ms = new Date(end).getTime() - new Date(start).getTime();
@@ -67,8 +50,6 @@ export default function TransactionsPage() {
   const vehicleById = useMemo(() => new Map(vehicles.map((v) => [v.id, v])), [vehicles]);
   const driverById = useMemo(() => new Map(drivers.map((d) => [d.id, d])), [drivers]);
 
-  // Trips: every resolved outcome (allocated, denied, cancelled), newest first.
-  // Still-pending requests show up as "Requisition submitted" events instead.
   const trips = useMemo(
     () =>
       requisitions
@@ -82,37 +63,44 @@ export default function TransactionsPage() {
   function exportCsv() {
     const scope = isAdminLike ? "all" : "mine";
     const day = new Date().toISOString().slice(0, 10);
+
     if (tab === "trips") {
       const header = [
         "S.no", "Visitor / Employee", "Host / Department", "Start Date", "End Date", "Total Days",
         "Pickup Location", "Drop Location", "Purpose", "Vehicle Reg No", "Vehicle Model",
-        "Driver Name", "Driver Phone", "Status", "Allocated At", "Denied At", "Denial Reason", "Cancelled At",
+        "Driver Name", "Driver Phone", "Status",
+        "Allocated Date", "Allocated Time", "Denied Date", "Denied Time", "Denial Reason",
+        "Cancelled Date", "Cancelled Time", "Cancellation Reason", "Completed Date", "Completed Time",
       ];
       const rows = trips.map((r) => {
         const v = r.vehicle_id ? vehicleById.get(r.vehicle_id) : undefined;
         const d = r.driver_id ? driverById.get(r.driver_id) : undefined;
+        const [allocD, allocT] = splitStamp(r.allocated_at);
+        const [denD, denT] = splitStamp(r.denied_at);
+        const [canD, canT] = splitStamp(r.cancelled_at);
+        const [comD, comT] = splitStamp(r.completed_at);
         return [
-          String(r.sno), r.requester, r.department, r.start_date, r.end_date,
-          String(totalDays(r.start_date, r.end_date)), r.origin, r.destination, r.purpose ?? "",
-          v?.reg_no ?? "", v?.model ?? "", d?.name ?? "", d?.phone ?? "", r.status,
-          r.allocated_at ?? "", r.denied_at ?? "", r.denial_reason ?? "", r.cancelled_at ?? "",
+          r.sno, r.requester, r.department, r.start_date, r.end_date,
+          totalDays(r.start_date, r.end_date), r.origin, r.destination, r.purpose,
+          v?.reg_no, v?.model, d?.name, phone(d?.phone), r.status,
+          allocD, allocT, denD, denT, r.denial_reason,
+          canD, canT, r.cancellation_reason, comD, comT,
         ];
       });
-      downloadCsv(`pool-car-trips-${scope}-${day}.csv`, [header, ...rows]);
+      downloadCsv(`pool-car-trips-${scope}-${day}.csv`, header, rows);
       return;
     }
-    const header = ["When", "Type", "Who", "What", "Trip", "Details", "Driver", "Driver Phone"];
-    const rows = shownEvents.map((e) => [
-      e.at,
-      e.kind === "notice" ? "Notice" : "Activity",
-      e.kind === "activity" ? (e.mine ? "You" : e.actor ?? "System") : "",
-      e.label,
-      e.tripLabel ?? "",
-      e.detail ?? "",
-      e.driverName ?? "",
-      e.driverPhone ?? "",
-    ]);
-    downloadCsv(`pool-car-${tab === "notices" ? "notices" : "activity"}-${scope}-${day}.csv`, [header, ...rows]);
+
+    const header = ["Date", "Time", "Category", "Name", "Action", "Trip", "Details", "Driver Name", "Driver Phone"];
+    const rows = shownEvents.map((e) => {
+      const [date, time] = splitStamp(e.at);
+      const name = e.kind === "activity" ? (e.mine ? session?.name : e.actor) ?? "System" : "System";
+      return [
+        date, time, e.kind === "notice" ? "Notice" : "Activity", name,
+        e.label, e.tripLabel, e.detail, e.driverName, phone(e.driverPhone),
+      ];
+    });
+    downloadCsv(`pool-car-${tab === "notices" ? "notices" : "activity"}-${scope}-${day}.csv`, header, rows);
   }
 
   const tabs: { key: Tab; label: string; count: number }[] = [
